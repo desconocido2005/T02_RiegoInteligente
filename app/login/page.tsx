@@ -50,7 +50,21 @@ export default function LoginPage() {
     <div className="min-h-screen flex bg-background">
       {/* Left — brand panel */}
       <aside className="hidden lg:flex w-[48%] xl:w-[52%] flex-col justify-between p-12 bg-primary text-primary-foreground relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.06]">
+        {/* Animated background image (Ken Burns effect) */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center animate-ken-burns"
+          style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
+        />
+
+        {/* Dark green overlay for contrast */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/95"
+        />
+
+        {/* Subtle leaf pattern */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none">
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="leafgrid" width="64" height="64" patternUnits="userSpaceOnUse">
@@ -63,6 +77,29 @@ export default function LoginPage() {
             </defs>
             <rect width="100%" height="100%" fill="url(#leafgrid)" />
           </svg>
+        </div>
+
+        {/* Floating droplets animation */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[
+            { left: '12%', delay: '0s', duration: '7s', size: 'w-2 h-2' },
+            { left: '28%', delay: '2s', duration: '9s', size: 'w-1.5 h-1.5' },
+            { left: '44%', delay: '4s', duration: '8s', size: 'w-2.5 h-2.5' },
+            { left: '62%', delay: '1s', duration: '10s', size: 'w-1.5 h-1.5' },
+            { left: '78%', delay: '3s', duration: '7.5s', size: 'w-2 h-2' },
+            { left: '88%', delay: '5s', duration: '9.5s', size: 'w-1 h-1' },
+          ].map((d, i) => (
+            <span
+              key={i}
+              className={`absolute ${d.size} rounded-full bg-accent/60 animate-float-up`}
+              style={{
+                left: d.left,
+                bottom: '-10px',
+                animationDelay: d.delay,
+                animationDuration: d.duration,
+              }}
+            />
+          ))}
         </div>
 
         <div className="relative flex items-center gap-3">
