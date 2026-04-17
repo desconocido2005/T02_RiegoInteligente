@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -9,20 +10,56 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useStore } from '@/lib/store';
 
-const data = [
-  { time: '00:00', humidity: 62 },
-  { time: '04:00', humidity: 58 },
-  { time: '08:00', humidity: 55 },
-  { time: '12:00', humidity: 48 },
-  { time: '16:00', humidity: 52 },
-  { time: '20:00', humidity: 65 },
-  { time: '24:00', humidity: 68 },
-];
+const PERIODS = {
+  '24H': 24,
+  '7D': 24 * 7,
+  '30D': 24 * 30,
+} as const;
+
+type Period = keyof typeof PERIODS;
 
 export function HumidityChart() {
-  const avg = Math.round(data.reduce((a, b) => a + b.humidity, 0) / data.length);
+  const { state } = useStore();
+  const [period, setPeriod] = useState<Period>('24H');
+
+  const data = useMemo(() => {
+    const hours = PERIODS[period];
+    const now = Date.now();
+    const since = now - hours * 60 * 60 * 1000;
+    const byBucket = new Map<string, { sum: number; count: number; ts: number }>();
+
+    const isShortPeriod = period === '24H';
+
+    state.lecturas
+      .filter((l) => new Date(l.fecha_hora).getTime() >= since)
+      .forEach((l) => {
+        const d = new Date(l.fecha_hora);
+        const key = isShortPeriod
+          ? `${d.getHours().toString().padStart(2, '0')}:00`
+          : `${d.getMonth() + 1}/${d.getDate()}`;
+        const bucket = byBucket.get(key);
+        if (bucket) {
+          bucket.sum += l.valor_humedad;
+          bucket.count += 1;
+        } else {
+          byBucket.set(key, { sum: l.valor_humedad, count: 1, ts: d.getTime() });
+        }
+      });
+
+    return Array.from(byBucket.entries())
+      .map(([time, v]) => ({ time, humidity: Math.round(v.sum / v.count), ts: v.ts }))
+      .sort((a, b) => a.ts - b.ts);
+  }, [state.lecturas, period]);
+
+  const avg = data.length
+    ? Math.round(data.reduce((a, b) => a + b.humidity, 0) / data.length)
+    : 0;
+
+  const trend = data.length >= 2 ? data[data.length - 1].humidity - data[0].humidity : 0;
+  const trendPositive = trend >= 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 hover:border-border-strong">
@@ -36,24 +73,42 @@ export function HumidityChart() {
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="font-display text-4xl text-foreground leading-none">{avg}%</h3>
-            <div className="flex items-center gap-1 text-success">
-              <TrendingUp className="w-3.5 h-3.5" strokeWidth={2} />
-              <span className="text-xs font-medium">+4.2%</span>
+            <div
+              className={`flex items-center gap-1 ${
+                trendPositive ? 'text-success' : 'text-warning'
+              }`}
+            >
+              {trendPositive ? (
+                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2} />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5" strokeWidth={2} />
+              )}
+              <span className="text-xs font-medium">
+                {trendPositive ? '+' : ''}
+                {trend.toFixed(1)}%
+              </span>
             </div>
           </div>
-          <p className="text-xs text-text-secondary mt-2">Últimas 24 horas</p>
+          <p className="text-xs text-text-secondary mt-2">
+            {period === '24H'
+              ? 'Últimas 24 horas'
+              : period === '7D'
+                ? 'Últimos 7 días'
+                : 'Últimos 30 días'}
+          </p>
         </div>
         <div className="flex gap-1">
-          {['24H', '7D', '30D'].map((period, i) => (
+          {(['24H', '7D', '30D'] as Period[]).map((p) => (
             <button
-              key={period}
+              key={p}
+              onClick={() => setPeriod(p)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md ${
-                i === 0
+                period === p
                   ? 'bg-primary text-primary-foreground'
                   : 'text-text-secondary hover:bg-muted'
               }`}
             >
-              {period}
+              {p}
             </button>
           ))}
         </div>
@@ -81,6 +136,7 @@ export function HumidityChart() {
             tickLine={false}
             axisLine={false}
             unit="%"
+            domain={[0, 100]}
           />
           <Tooltip
             contentStyle={{
@@ -92,6 +148,7 @@ export function HumidityChart() {
             }}
             labelStyle={{ color: '#6B6557', marginBottom: '4px' }}
             itemStyle={{ color: '#0F1F1C' }}
+            formatter={(value) => [`${value}%`, 'Humedad']}
           />
           <Area
             type="monotone"

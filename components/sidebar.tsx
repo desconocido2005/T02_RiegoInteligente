@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   ChevronRight,
+  LogOut,
 } from 'lucide-react';
+import { useStore } from '@/lib/store';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -32,6 +34,24 @@ const navigation = [
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { state, logout } = useStore();
+  const router = useRouter();
+
+  const unreadAlerts = state.alertas.filter((a) => !a.leido).length;
+  const user = state.auth;
+  const initials = user
+    ? user.nombre
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : '—';
+
+  const handleLogout = () => {
+    logout();
+    router.replace('/login');
+  };
 
   return (
     <>
@@ -72,9 +92,7 @@ export function Sidebar() {
               <Leaf className="w-5 h-5 text-primary-foreground" strokeWidth={2} />
             </div>
             <div>
-              <h1 className="font-display text-2xl leading-none text-foreground">
-                Verdant
-              </h1>
+              <h1 className="font-display text-2xl leading-none text-foreground">Verdant</h1>
               <p className="text-[11px] text-text-muted tracking-widest uppercase mt-1">
                 Riego Inteligente
               </p>
@@ -91,6 +109,7 @@ export function Sidebar() {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
+              const showBadge = item.href === '/alertas' && unreadAlerts > 0;
               return (
                 <li key={item.name}>
                   <Link
@@ -98,20 +117,34 @@ export function Sidebar() {
                     onClick={() => setIsOpen(false)}
                     className={`
                       group flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm
-                      ${isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-text-secondary hover:bg-muted hover:text-foreground'
+                      ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-text-secondary hover:bg-muted hover:text-foreground'
                       }
                     `}
                   >
                     <Icon
                       className={`w-4 h-4 shrink-0 ${
-                        isActive ? 'text-primary-foreground' : 'text-text-muted group-hover:text-foreground'
+                        isActive
+                          ? 'text-primary-foreground'
+                          : 'text-text-muted group-hover:text-foreground'
                       }`}
                       strokeWidth={1.75}
                     />
                     <span className="font-medium flex-1">{item.name}</span>
-                    {isActive && (
+                    {showBadge && (
+                      <span
+                        className={`inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full text-[10px] font-semibold ${
+                          isActive
+                            ? 'bg-primary-foreground text-primary'
+                            : 'bg-error text-primary-foreground'
+                        }`}
+                      >
+                        {unreadAlerts}
+                      </span>
+                    )}
+                    {isActive && !showBadge && (
                       <ChevronRight className="w-3.5 h-3.5 text-primary-foreground/70" />
                     )}
                   </Link>
@@ -123,15 +156,26 @@ export function Sidebar() {
 
         {/* User card */}
         <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer">
-            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center text-accent-foreground font-semibold text-sm">
-              JH
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40">
+            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center text-accent-foreground font-semibold text-sm shrink-0">
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Juan Heras</p>
-              <p className="text-xs text-text-muted">Administrador</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.nombre || 'Invitado'}
+              </p>
+              <p className="text-xs text-text-muted capitalize">
+                {user?.rol || 'sin sesión'}
+              </p>
             </div>
-            <div className="w-2 h-2 rounded-full bg-success" />
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-text-muted hover:bg-error/10 hover:text-error"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={1.75} />
+            </button>
           </div>
         </div>
       </aside>
