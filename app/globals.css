@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F4F6F5;
+  --foreground: #1F2933;
+  --card: #FFFFFF;
+  --primary: #2F5D50;
+  --secondary: #6B8E23;
+  --accent: #A3B18A;
+  --text-secondary: #6B7280;
+  --info: #3B82F6;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --border: #E5E7EB;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
