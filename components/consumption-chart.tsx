@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -11,20 +12,48 @@ import {
   Cell,
 } from 'recharts';
 import { Droplet } from 'lucide-react';
+import { useStore } from '@/lib/store';
 
-const data = [
-  { day: 'Lun', consumption: 120 },
-  { day: 'Mar', consumption: 145 },
-  { day: 'Mié', consumption: 98 },
-  { day: 'Jue', consumption: 167 },
-  { day: 'Vie', consumption: 134 },
-  { day: 'Sáb', consumption: 156 },
-  { day: 'Dom', consumption: 142 },
-];
+const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export function ConsumptionChart() {
+  const { state } = useStore();
+
+  const data = useMemo(() => {
+    const today = new Date();
+    const buckets: { day: string; consumption: number; ts: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      buckets.push({ day: DIAS[d.getDay()], consumption: 0, ts: d.getTime() });
+    }
+
+    state.historial.forEach((h) => {
+      const hDate = new Date(h.fecha_inicio);
+      hDate.setHours(0, 0, 0, 0);
+      const match = buckets.find((b) => b.ts === hDate.getTime());
+      if (match) match.consumption += Number(h.litros_consumidos);
+    });
+
+    // Include current in-progress irrigations
+    Object.values(state.runtime).forEach((r) => {
+      if (r.regando && r.litros_en_curso > 0) {
+        const today0 = new Date();
+        today0.setHours(0, 0, 0, 0);
+        const bucket = buckets.find((b) => b.ts === today0.getTime());
+        if (bucket) bucket.consumption += r.litros_en_curso;
+      }
+    });
+
+    return buckets.map((b) => ({
+      day: b.day,
+      consumption: Math.round(b.consumption),
+    }));
+  }, [state.historial, state.runtime]);
+
   const total = data.reduce((a, b) => a + b.consumption, 0);
-  const max = Math.max(...data.map((d) => d.consumption));
+  const max = Math.max(...data.map((d) => d.consumption), 1);
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 hover:border-border-strong">
@@ -81,8 +110,8 @@ export function ConsumptionChart() {
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.consumption === max ? '#B8935A' : '#1B3B36'}
-                fillOpacity={entry.consumption === max ? 1 : 0.85}
+                fill={entry.consumption === max && max > 0 ? '#B8935A' : '#1B3B36'}
+                fillOpacity={entry.consumption === max && max > 0 ? 1 : 0.85}
               />
             ))}
           </Bar>

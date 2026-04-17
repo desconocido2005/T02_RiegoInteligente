@@ -1,138 +1,225 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { TopBar } from '@/components/topbar';
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
-
-const alerts = [
-  {
-    id: 1,
-    title: 'Humedad baja en Zona Este',
-    message: 'La humedad ha caído a 25%. Se requiere riego inmediato.',
-    type: 'error',
-    time: 'Hace 15 minutos',
-    zone: 'Zona Este',
-  },
-  {
-    id: 2,
-    title: 'Temperatura elevada',
-    message: 'Temperatura de 32°C en invernadero. Considera ventilación.',
-    type: 'warning',
-    time: 'Hace 1 hora',
-    zone: 'Zona Este',
-  },
-  {
-    id: 3,
-    title: 'Dispositivo desconectado',
-    message: 'Válvula Solenoide #2 se desconectó de la red.',
-    type: 'error',
-    time: 'Hace 3 horas',
-    zone: 'Zona Sur',
-  },
-  {
-    id: 4,
-    title: 'Batería baja',
-    message: 'Sensor Humedad #3 con batería al 15%.',
-    type: 'warning',
-    time: 'Hace 5 horas',
-    zone: 'Zona Oeste',
-  },
-];
-
-const resolvedAlerts = [
-  {
-    id: 5,
-    title: 'Riego completado',
-    message: 'Zona Norte ha alcanzado humedad óptima.',
-    zone: 'Zona Norte',
-    resolvedTime: 'Hace 2 horas',
-  },
-];
+import { AuthGuard } from '@/components/auth-guard';
+import { Button } from '@/components/ui/form';
+import { useStore } from '@/lib/store';
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Bell,
+  Droplets,
+  WifiOff,
+  Sparkles,
+  AlertTriangle,
+} from 'lucide-react';
+import type { Alerta } from '@/lib/types';
 
 export default function AlertasPage() {
   return (
+    <AuthGuard>
+      <AlertasContent />
+    </AuthGuard>
+  );
+}
+
+type AlertSeverity = 'critical' | 'warning' | 'info' | 'success';
+
+function classifyAlert(a: Alerta): AlertSeverity {
+  switch (a.tipo_alerta) {
+    case 'humedad_critica':
+      return 'critical';
+    case 'falla_dispositivo':
+      return 'warning';
+    case 'riego_completado':
+      return 'success';
+    case 'riego_automatico':
+      return 'info';
+    case 'riego_detenido':
+      return 'warning';
+    default:
+      return 'info';
+  }
+}
+
+const ICONS: Record<AlertSeverity, typeof AlertCircle> = {
+  critical: AlertCircle,
+  warning: AlertTriangle,
+  info: Droplets,
+  success: Sparkles,
+};
+
+const STYLES: Record<AlertSeverity, { border: string; bg: string; iconBg: string; text: string; dot: string }> = {
+  critical: {
+    border: 'border-error/25',
+    bg: 'bg-error/5',
+    iconBg: 'bg-error/10',
+    text: 'text-error',
+    dot: 'bg-error',
+  },
+  warning: {
+    border: 'border-warning/25',
+    bg: 'bg-warning/5',
+    iconBg: 'bg-warning/10',
+    text: 'text-warning',
+    dot: 'bg-warning',
+  },
+  info: {
+    border: 'border-water/25',
+    bg: 'bg-water/5',
+    iconBg: 'bg-water/10',
+    text: 'text-water',
+    dot: 'bg-water',
+  },
+  success: {
+    border: 'border-success/25',
+    bg: 'bg-success/5',
+    iconBg: 'bg-success/10',
+    text: 'text-success',
+    dot: 'bg-success',
+  },
+};
+
+function formatRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return 'Hace un momento';
+  if (mins < 60) return `Hace ${mins} min`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `Hace ${hrs} h`;
+  const days = Math.round(hrs / 24);
+  return `Hace ${days} d`;
+}
+
+function AlertasContent() {
+  const { state, resolveAlerta, markAllRead } = useStore();
+
+  const { active, resolved } = useMemo(() => {
+    const active = state.alertas.filter((a) => !a.leido);
+    const resolved = state.alertas.filter((a) => a.leido).slice(0, 10);
+    return { active, resolved };
+  }, [state.alertas]);
+
+  return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-72">
         <TopBar />
-
         <main className="flex-1 overflow-auto">
           <div className="p-8">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">Alertas del Sistema</h1>
-              <p className="text-text-secondary mb-8">Monitorea todos los eventos importantes</p>
+            <div className="flex items-start justify-between gap-4 mb-8">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-text-muted mb-2">
+                  Notificaciones
+                </p>
+                <h1 className="font-display text-5xl text-foreground mb-2">Alertas</h1>
+                <p className="text-text-secondary">
+                  {active.length > 0
+                    ? `${active.length} alerta${active.length === 1 ? '' : 's'} requiere${active.length === 1 ? '' : 'n'} atención.`
+                    : 'Todo en orden. Sin alertas activas.'}
+                </p>
+              </div>
+              {active.length > 0 && (
+                <Button variant="outline" onClick={markAllRead}>
+                  <CheckCircle className="w-4 h-4" />
+                  Marcar todas como leídas
+                </Button>
+              )}
             </div>
 
-            {/* Active Alerts */}
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-foreground mb-4">Alertas Activas</h2>
-              <div className="space-y-4">
-                {alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`border rounded-lg p-6 flex items-start gap-4 ${
-                      alert.type === 'error'
-                        ? 'bg-error/5 border-error/20'
-                        : 'bg-warning/5 border-warning/20'
-                    }`}
-                  >
-                    <div className={`p-3 rounded-lg ${
-                      alert.type === 'error'
-                        ? 'bg-error/10'
-                        : 'bg-warning/10'
-                    }`}>
-                      <AlertCircle
-                        size={24}
-                        className={alert.type === 'error' ? 'text-error' : 'text-warning'}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">{alert.title}</h3>
-                      <p className="text-sm text-text-secondary mb-2">{alert.message}</p>
-                      <div className="flex items-center gap-4 text-xs text-text-secondary">
-                        <span>{alert.zone}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {alert.time}
-                        </span>
-                      </div>
-                    </div>
-                    <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm whitespace-nowrap">
-                      Resolver
-                    </button>
+            {/* Active */}
+            <section className="mb-10">
+              <h2 className="font-display text-2xl text-foreground mb-4">
+                Alertas activas
+              </h2>
+              {active.length === 0 ? (
+                <div className="bg-card border border-dashed border-border rounded-xl p-12 text-center">
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Bell className="w-5 h-5 text-success" strokeWidth={1.75} />
                   </div>
-                ))}
-              </div>
-            </div>
+                  <p className="text-text-secondary">
+                    Nada pendiente por ahora. El sistema está monitoreando en segundo plano.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {active.map((a) => {
+                    const sev = classifyAlert(a);
+                    const style = STYLES[sev];
+                    const Icon = ICONS[sev];
+                    return (
+                      <div
+                        key={a.alerta_id}
+                        className={`border rounded-xl p-5 flex items-start gap-4 ${style.border} ${style.bg}`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${style.iconBg}`}
+                        >
+                          <Icon className={`w-5 h-5 ${style.text}`} strokeWidth={1.75} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                            <span className={`text-[10px] font-semibold uppercase tracking-widest ${style.text}`}>
+                              {a.tipo_alerta?.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {a.mensaje}
+                          </p>
+                          <p className="text-xs text-text-muted mt-2 inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatRelative(a.fecha_creacion)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resolveAlerta(a.alerta_id)}
+                        >
+                          Resolver
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
-            {/* Resolved Alerts */}
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-4">Alertas Resueltas</h2>
-              <div className="space-y-4">
-                {resolvedAlerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="border border-success/20 bg-success/5 rounded-lg p-6 flex items-start gap-4"
-                  >
-                    <div className="p-3 rounded-lg bg-success/10">
-                      <CheckCircle size={24} className="text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">{alert.title}</h3>
-                      <p className="text-sm text-text-secondary mb-2">{alert.message}</p>
-                      <div className="flex items-center gap-4 text-xs text-text-secondary">
-                        <span>{alert.zone}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {alert.resolvedTime}
-                        </span>
+            {/* Resolved */}
+            {resolved.length > 0 && (
+              <section>
+                <h2 className="font-display text-2xl text-foreground mb-4">
+                  Historial reciente
+                </h2>
+                <div className="space-y-3">
+                  {resolved.map((a) => {
+                    const sev = classifyAlert(a);
+                    const Icon = sev === 'success' ? Sparkles : sev === 'warning' ? WifiOff : CheckCircle;
+                    return (
+                      <div
+                        key={a.alerta_id}
+                        className="border border-border bg-card rounded-xl p-5 flex items-start gap-4 opacity-80"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <Icon className="w-5 h-5 text-text-muted" strokeWidth={1.75} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-foreground">{a.mensaje}</p>
+                          <p className="text-xs text-text-muted mt-1 inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatRelative(a.fecha_creacion)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
         </main>
       </div>

@@ -1,74 +1,79 @@
 'use client';
 
+import { useState } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { TopBar } from '@/components/topbar';
 import { ZoneListCard } from '@/components/zone-list-card';
-import { Plus } from 'lucide-react';
-
-const zones = [
-  {
-    id: '1',
-    name: 'Zona Norte - Cultivos A',
-    humidity: 65,
-    temperature: 28,
-    status: 'active' as const,
-    lastWatered: 'Hace 2 horas',
-  },
-  {
-    id: '2',
-    name: 'Zona Sur - Cultivos B',
-    humidity: 58,
-    temperature: 26,
-    status: 'idle' as const,
-    lastWatered: 'Hace 4 horas',
-  },
-  {
-    id: '3',
-    name: 'Zona Este - Invernadero',
-    humidity: 72,
-    temperature: 30,
-    status: 'alert' as const,
-    lastWatered: 'Hace 6 horas',
-  },
-  {
-    id: '4',
-    name: 'Zona Oeste - Huerto',
-    humidity: 68,
-    temperature: 25,
-    status: 'active' as const,
-    lastWatered: 'Hace 1 hora',
-  },
-];
+import { AuthGuard } from '@/components/auth-guard';
+import { Button } from '@/components/ui/form';
+import { ZoneForm } from '@/components/forms/zone-form';
+import { useStore } from '@/lib/store';
+import { Plus, MapPin } from 'lucide-react';
 
 export default function ZonasPage() {
   return (
+    <AuthGuard>
+      <ZonasContent />
+    </AuthGuard>
+  );
+}
+
+function ZonasContent() {
+  const { state } = useStore();
+  const [openForm, setOpenForm] = useState(false);
+
+  return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-72">
         <TopBar />
-
         <main className="flex-1 overflow-auto">
           <div className="p-8">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-start justify-between gap-4 mb-8">
               <div>
-                <h1 className="text-4xl font-bold text-foreground mb-2">Zonas de Riego</h1>
-                <p className="text-text-secondary">Monitorea todas tus zonas en tiempo real</p>
+                <p className="text-xs uppercase tracking-widest text-text-muted mb-2">
+                  Parcelas
+                </p>
+                <h1 className="font-display text-5xl text-foreground mb-2">
+                  Zonas de riego
+                </h1>
+                <p className="text-text-secondary">
+                  {state.zonas.length} zona{state.zonas.length === 1 ? '' : 's'} bajo
+                  monitoreo continuo.
+                </p>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
-                <Plus size={20} />
-                Nueva Zona
-              </button>
+              <Button onClick={() => setOpenForm(true)} size="lg">
+                <Plus className="w-4 h-4" />
+                Nueva zona
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-              {zones.map((zone) => (
-                <ZoneListCard key={zone.id} {...zone} />
-              ))}
-            </div>
+            {state.zonas.length === 0 ? (
+              <div className="bg-card border border-dashed border-border rounded-xl p-16 text-center">
+                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <MapPin className="w-6 h-6 text-text-muted" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-display text-2xl text-foreground mb-2">Sin zonas aún</h3>
+                <p className="text-text-secondary mb-6 max-w-sm mx-auto">
+                  Crea tu primera zona de riego para comenzar a monitorear la humedad del
+                  suelo.
+                </p>
+                <Button onClick={() => setOpenForm(true)}>
+                  <Plus className="w-4 h-4" />
+                  Crear primera zona
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {state.zonas.map((zona) => (
+                  <ZoneListCard key={zona.zona_id} zona={zona} />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
+      <ZoneForm open={openForm} onClose={() => setOpenForm(false)} />
     </div>
   );
 }
