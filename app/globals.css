@@ -1,54 +1,109 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F4F6F5;
-  --foreground: #1F2933;
+  /* Base - Cream & Deep Forest */
+  --background: #FAF8F3;
+  --foreground: #0F1F1C;
   --card: #FFFFFF;
-  --primary: #2F5D50;
-  --secondary: #6B8E23;
-  --accent: #A3B18A;
-  --text-secondary: #6B7280;
-  --info: #3B82F6;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
-  --border: #E5E7EB;
+  --muted: #F0ECE2;
+
+  /* Primary - Deep Forest Green */
+  --primary: #1B3B36;
+  --primary-foreground: #FAF8F3;
+
+  /* Accent - Warm Bronze */
+  --accent: #B8935A;
+  --accent-foreground: #FAF8F3;
+
+  /* Secondary - Sage */
+  --secondary: #8A9A8B;
+
+  /* Text */
+  --text-secondary: #6B6557;
+  --text-muted: #9C9687;
+
+  /* Borders */
+  --border: #E5DFD3;
+  --border-strong: #C9C2B3;
+
+  /* States */
+  --info: #3E6D84;
+  --success: #4A7856;
+  --warning: #B8752F;
+  --error: #9B3B3B;
+
+  /* Water tone */
+  --water: #5B8FA8;
+
+  --radius: 0.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
   --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-water: var(--water);
+
   --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-instrument-serif);
   --font-mono: var(--font-geist-mono);
 }
 
-body {
+html, body {
   background: var(--background);
   color: var(--foreground);
+  font-feature-settings: "ss01", "cv11";
 }
 
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+/* Elegant transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scrollbar profesional */
+/* Minimal scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 4px;
+  background: var(--border-strong);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--secondary);
+  background: var(--text-muted);
+}
+
+/* Selection */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Serif display utility */
+.font-display {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
