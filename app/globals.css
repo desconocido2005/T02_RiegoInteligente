@@ -107,3 +107,62 @@ html, body {
   font-weight: 400;
   letter-spacing: -0.02em;
 }
+
+/* ---------- Login / brand panel animations ---------- */
+
+/* Slow Ken Burns (zoom + pan) for the background image */
+@keyframes ken-burns {
+  0% {
+    transform: scale(1.05) translate3d(0, 0, 0);
+    transform-origin: 50% 50%;
+  }
+  50% {
+    transform: scale(1.15) translate3d(-1.5%, -1%, 0);
+    transform-origin: 45% 55%;
+  }
+  100% {
+    transform: scale(1.05) translate3d(0, 0, 0);
+    transform-origin: 50% 50%;
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Floating droplets rising */
+@keyframes float-up {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-55vh) translateX(8px);
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(-4px);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up linear infinite;
+  box-shadow: 0 0 8px 1px rgba(184, 147, 90, 0.45);
+  will-change: transform, opacity;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-ken-burns,
+  .animate-float-up {
+    animation: none;
+  }
+}
